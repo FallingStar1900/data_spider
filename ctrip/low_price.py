@@ -5,12 +5,16 @@ from citys.url_manager import DefReqUrl
 from ctrip.req_header_ctrip import DefReqHeader
 
 class GetSingleLowPrice:
-    def __init__(self, src, des, req_type):
+    def __init__(self, src, src_id, src_name, des, des_id, des_name, req_type):
         self.src_city = src
+        self.src_city_id = src_id
+        self.src_city_name = src_name
         self.des_city = des
+        self.des_city_id = des_id
+        self.des_city_name = des_name
         self.req_type = req_type
     def get_low_price(self):
-        ctripHeader = DefReqHeader(self.src_city, self.des_city, self.req_type)
+        ctripHeader = DefReqHeader(self.src_city, self.src_city_id, self.src_city_name, self.des_city, self.des_city_id, self.des_city_name, self.req_type)
         header = ctripHeader.get_req_header()
         formdata = ctripHeader.req_form_data()
         url = DefReqUrl().get_ctrip_url_lowest_price()
@@ -29,7 +33,7 @@ class GetSingleLowPrice:
         print(res_json)
 
 if __name__ == "__main__":
-    lowprice = GetSingleLowPrice("CKG", "BJS", "low_price")
+    lowprice = GetSingleLowPrice("BJS", 1, "北京", "XMN", 25, "厦门", "low_price")
     lowprice.get_low_price()
 
 
