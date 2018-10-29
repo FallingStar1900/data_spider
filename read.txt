@@ -1,1 +1,1 @@
-#mining data from web
+#解决mac上request请求https的时候报ssl错误，具体blog见：http://blog.yuccn.net/archives/625.html
