@@ -28,7 +28,9 @@ class GetSingleLowPrice:
         raw_data = response.read()
         # print("返回数据", raw_data)
         res_json = json.loads(gzip.decompress(raw_data))
+        #res_json = json.dumps(res_json, ensure_ascii=False)
         print(res_json)
+        return res_json
 
 if __name__ == "__main__":
     singleAirlines = GetSingleLowPrice("BJS", 1, "北京", "XMN", 25, "厦门", "ctrip_single_airlines")
