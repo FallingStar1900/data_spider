@@ -26,9 +26,9 @@ class ParseDict:
                     city_number = info_item[2]
                     city_code = str(info_item[3])
                     print(city_name, city_number, city_code)
-                    #print(city_number)
-                    #print(city_code)
+                                  
             num = num + 1
+
 
 if __name__ == "__main__":
     def_req_url = DefReqUrl()
