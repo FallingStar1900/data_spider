@@ -1,2 +1,18 @@
 #解决mac上request请求https的时候报ssl错误，具体blog见：http://blog.yuccn.net/archives/625.html
 #mysql在mac上的安装 https://blog.csdn.net/pansanday/article/details/54915916，默认安装后，用户名是root，密码是设置的密码
+
+msyql相关的blog：
+1、http://www.cnblogs.com/mr-wid/archive/2013/05/09/3068229.html#d11
+2、https://www.cnblogs.com/sos-blue/p/6852945.html
+3、https://blog.csdn.net/Dextrad_ihacker/article/details/53042511
+4、https://baijiahao.baidu.com/s?id=1581465560736293669&wfr=spider&for=pc各种python链接mysql模块的介绍，最终选择pymysql
+5、http://www.runoob.com/python/python-mysql.htmlpython如何操作数据库
+
+
+mysql基本命令：
+1、select user,host from mysql.user;查看mysql里的所有用户
+2、CREATE USER 'pig'@'%' IDENTIFIED BY '123456';创建用户
+3、GRANT SELECT, INSERT ON test.user TO 'pig'@'%';给某个用户授权，全部用all
+4、create database samp_db character set gbk;创建数据库
+5、create table data_spider.citys(id int unsigned not null auto_increment primary key, city_name varchar(20) not null, city_number int unsigned not null, city_code char(10) not null);创建表
+
