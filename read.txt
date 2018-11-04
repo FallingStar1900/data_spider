@@ -7,6 +7,7 @@ msyql相关的blog：
 3、https://blog.csdn.net/Dextrad_ihacker/article/details/53042511
 4、https://baijiahao.baidu.com/s?id=1581465560736293669&wfr=spider&for=pc各种python链接mysql模块的介绍，最终选择pymysql
 5、http://www.runoob.com/python/python-mysql.htmlpython如何操作数据库
+6、https://blog.csdn.net/qq_37176126/article/details/72824106  py3.6利用pymysql连接数据库
 
 
 mysql基本命令：
