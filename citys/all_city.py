@@ -21,6 +21,7 @@ class GetAllCitys:
         print(json.dumps(raw_json,ensure_ascii=False))
         return raw_json
 
+
 if __name__ == "__main__":
     def_req_url = DefReqUrl()
     citys_url = def_req_url.get_ctrip_url_citys()
