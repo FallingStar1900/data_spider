@@ -16,4 +16,6 @@ mysql基本命令：
 3、GRANT SELECT, INSERT ON test.user TO 'pig'@'%';给某个用户授权，全部用all
 4、create database samp_db character set gbk;创建数据库
 5、create table data_spider.citys(id int unsigned not null auto_increment primary key, city_name varchar(20) not null, city_number int unsigned not null, city_code char(10) not null);创建表
-
+6、show global variables like 'port';查看端口
+7、alter table user add unique key(`name`)设置某一列为唯一key，在insert的时候可以判断该列是否存在，存在则更新，不存在会新增
+8、insert into citys values("遵义",558,"ZYI") ON DUPLICATE KEY UPDATE city_name="遵义",city_number=558,city_code="ZYI";
