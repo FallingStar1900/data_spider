@@ -19,3 +19,6 @@ mysql基本命令：
 6、show global variables like 'port';查看端口
 7、alter table user add unique key(`name`)设置某一列为唯一key，在insert的时候可以判断该列是否存在，存在则更新，不存在会新增
 8、insert into citys values("遵义",558,"ZYI") ON DUPLICATE KEY UPDATE city_name="遵义",city_number=558,city_code="ZYI";
+9、create table data_spider.low_price(src_city_name varchar(20) not null, src_city_number int unsigned not null, src_city_code char(10) not null, des_city_name varchar(20) not null, des_city_number int unsigned not null, des_city_code char(10) not null, low_price_list text not null);
+10、ALTER TABLE good_booked DROP INDEX good_id;想删除某个表中某个字段的unique key：
+11、alter table TABLE_NAME add column NEW_COLUMN_NAME varchar(20) not null;增加一列
