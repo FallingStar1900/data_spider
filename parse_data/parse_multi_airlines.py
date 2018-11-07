@@ -33,9 +33,15 @@ class ParseMultiAirlines:
                 craftTypeName = route_list['legs'][0]['flight']['craftTypeName']
                 craftTypeKindDisplayName = route_list['legs'][0]['flight']['craftTypeKindDisplayName']
                 lowest_price = route_list['legs'][0]['characteristic']['lowestPrice']
-                standardPrices_Y = route_list['legs'][0]['characteristic']['standardPrices'][0]['price']
-                standardPrices_C = route_list['legs'][0]['characteristic']['standardPrices'][1]['price']
-                standardPrices_F = route_list['legs'][0]['characteristic']['standardPrices'][2]['price']
+                standprice_num = len(route_list['legs'][0]['characteristic']['standardPrices'])
+                t = 0
+                list = []
+                while t < standprice_num:
+                    cabin_class = route_list['legs'][0]['characteristic']['standardPrices'][t]['cabinClass']
+                    cabin_class_price = route_list['legs'][0]['characteristic']['standardPrices'][t]['price']
+                    cabin_price = cabin_class + "_" + str(cabin_class_price)
+                    list.append(cabin_price)
+                    t = t + 1
                 stop_times = route_list['legs'][0]['flight']['stopTimes']
                 if stop_times != 0 :
                     stop_time = route_list['legs'][0]['flight']['stopInfo'][0]['dateRange']['endDate']
@@ -46,7 +52,7 @@ class ParseMultiAirlines:
                     stop_city = "Null"
                     stop_city_code = "Null"
                 print(src_name, des_name, airlineName, flightNumber, departure_data, arrival_data, stop_time,
-                      punctualityRate, lowest_price, standardPrices_C, standardPrices_F, standardPrices_Y)
+                      punctualityRate, list)
             else:
                 print("空铁特惠组合")
             i = i + 1
