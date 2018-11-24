@@ -1,0 +1,64 @@
+、 编译brpc之前，需要安装一些依赖包
+https://github.com/brpc/brpc/blob/master/docs/cn/getting_started.md#fedoracentos
+https://blog.csdn.net/breaksoftware/article/details/81564405
+2、 安装gflag
+? 依赖的cmake必须要再一定版本以上。
+? ?  ~  git clone https://github.com/gflags/gflags.git # 下载源码
+? ?  ~  cd gflags
+? ?  gflags git:(master) ? mkdir build && cd build # 建立文件夹
+? ?  build git:(master) ? cmake .. # 使用 cmake 编译生成 Makefile 文件（下载cmake，configure，make，make install编译，然后ln –s Yuan mudi连接）
+? ?  build git:(master) ? make # make 编译
+? ?  build git:(master) ? sudo make install # 安装库
+
+Protobuf的安装：安装目前看安装protobuf3.0.X的版本后，brpc可以编译通过。
+
+
+1、 brpc的安装（for centos）
+下载地址：https://github.com/brpc/brpc  下载之后是brpc-master
+安装的参考文档：https://github.com/brpc/brpc/blob/master/docs/cn/getting_started.md#fedoracentos
+依赖的包：
+? yum install gcc-c++
+? yum install make
+? yum install openssl-devel
+? cmake3.13.0 下载：https://cmake.org/download/
+编译过程：cd cmake-3.13.0 && ./configure；make ; make install 
+
+
+? gflags-master 下载：https://github.com/gflags/gflags
+编译过程：
+mkdir build && cd build 编译之后的文件都在build里
+在CMakeLists.txt中增加如下配置，产生动态链接库
+add_compile_options(-fPIC) 必须有
+Cmake ../  参数是CmakeLIsts.txt文件，所以要加../到上一层
+修改Makefile里的文件，make命令执行的时候是按照这个文件进行编译的。增加两个参数试一下
+CFLAGS += -fPIC
+CPPFLAGS += -fPIC  也许是为了生成动态链接库的
+最后make install即可看到对应的lib文件等输出到/usr/local/include中
+
+? protobuf-3.0.x下载：https://github.com/protocolbuffers/protobuf/tree/3.0.x  要选择3.0的分支才可以
+需要两个文件：googlemock-release-1.7.0和googletest-release-1.7.0
+地址：https://github.com/google/googlemock/archive/release-1.7.0.zip，
+    https://github.com/google/googletest/archive/release-1.7.0.zip
+ 先将autogen.sh中的curl命令注释，手动下载并解压（该文件用来生成configure文件），提示缺少autoreconf命令，yum install autoconf.noarch，yum install automake进行安装，会提示缺少yum install libtool.x86_64，然后再执行autogen.sh，完事之后就会有配置文件configure;./configure; make ; make install(可以看到对应的文件输出到哪个目录)
+
+? leveldb-master下载：https://github.com/google/leveldb
+brpc编译需要这个动态链接库：（libleveldb.so或者libleveldb.so.1.20）
+mkdir build && cd build && cmake ../ && make && make install 会生成libleveldb.a这个文件
+https://pkgs.org/download/libleveldb.so.1()(64bit)这个可以下载
+这个文件貌似也要放到/usr/local/lib64目录下？？？
+
+? brpc-master下载：https://github.com/brpc/brpc
+yum install openssl.x86_64 安装完之后再/usr/include下面有openssl，cp –r openssl /usr/local/include下
+将libleveldb.so 拷贝到/usr/local/lib下代替.a的那个文件，然后修改config_brpc.sh中，去掉git相关的。
+sh config_brpc.sh --headers=/usr/local/include/ --libs=/usr/local/lib
+
+? 可选配置项：libiconv-1.15 不知道是否需要安装
+? 进入brpc里的example/echo_c++的目录下，make编译，然后会有server和client出来。
+可能会报错：./echo_server: error while loading shared libraries: libleveldb.so.1: cannot open shared object file: No such file or directory
+需要重新加载系统默认的动态链接库
+ echo "/usr/local/lib" >> /etc/ld.so.conf
+ /sbin/ldconfig
+
+常见编译错误的blog：
+https://blog.csdn.net/sinat_36053757/article/details/70597877
+cmake中添加-fPIC编译选项方法：https://blog.csdn.net/zymill/article/details/81664233
