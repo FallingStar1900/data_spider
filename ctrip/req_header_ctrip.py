@@ -28,7 +28,7 @@ class DefReqHeader:
         header['Host'] = 'flights.ctrip.com'
         header['Origin'] = 'https://flights.ctrip.com'
         print(str(self.today_data))
-        header['Referer'] = 'https://flights.ctrip.com/itinerary/oneway/bjs-ckg?date=' + str(self.today_data) + '&portingToken=d04549c711694b459c3beec152cda919'
+        header['Referer'] = 'https://flights.ctrip.com/itinerary/oneway/bjs-ckg?date=' + '2018-11-26' + '&portingToken=d04549c711694b459c3beec152cda919'
         #User-Agent得随机，否则需要验证码
         UserAgent = [
             "Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36",
@@ -69,7 +69,7 @@ class DefReqHeader:
                     'acity': self.des_city,
                     'acityid': self.des_city_id,
                     'acityname': self.des_city_name,
-                    'date': str(self.today_data),
+                    'date': "2018-11-26",
                     'dcity': self.src_city,
                     'dcityid': self.src_city_id,
                     'dcityname': self.src_city_name
