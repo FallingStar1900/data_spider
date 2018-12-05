@@ -15,6 +15,7 @@ mysql基本命令：
 1、select user,host from mysql.user;查看mysql里的所有用户
 2、CREATE USER 'pig'@'%' IDENTIFIED BY '123456';创建用户
 3、GRANT SELECT, INSERT ON test.user TO 'pig'@'%';给某个用户授权，全部用all
+   update user set password=password('密码') where user='用户名';给用户修改密码
 4、create database samp_db character set gbk;创建数据库
 5、create table data_spider.citys(id int unsigned not null auto_increment primary key, city_name varchar(20) not null, city_number int unsigned not null, city_code char(10) not null);创建表
 6、show global variables like 'port';查看端口
