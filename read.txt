@@ -8,12 +8,15 @@ msyql相关的blog：
 4、https://baijiahao.baidu.com/s?id=1581465560736293669&wfr=spider&for=pc各种python链接mysql模块的介绍，最终选择pymysql
 5、http://www.runoob.com/python/python-mysql.htmlpython如何操作数据库
 6、https://blog.csdn.net/qq_37176126/article/details/72824106  py3.6利用pymysql连接数据库
+7、linux centos7.2安装mysql5.6  https://www.cnblogs.com/therunningfish/p/6898309.html
 
 
 mysql基本命令：
 1、select user,host from mysql.user;查看mysql里的所有用户
 2、CREATE USER 'pig'@'%' IDENTIFIED BY '123456';创建用户
 3、GRANT SELECT, INSERT ON test.user TO 'pig'@'%';给某个用户授权，全部用all
+   grant all on database.* to 'username'@'ip或者%';flush privileges;刷新权限表
+   update user set password=password('密码') where user='用户名';给用户修改密码
 4、create database samp_db character set gbk;创建数据库
 5、create table data_spider.citys(id int unsigned not null auto_increment primary key, city_name varchar(20) not null, city_number int unsigned not null, city_code char(10) not null);创建表
 6、show global variables like 'port';查看端口
