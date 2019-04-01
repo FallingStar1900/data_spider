@@ -16,11 +16,18 @@ mysql基本命令：
 2、CREATE USER 'pig'@'%' IDENTIFIED BY '123456';创建用户
 3、GRANT SELECT, INSERT ON test.user TO 'pig'@'%';给某个用户授权，全部用all
    grant all on database.* to 'username'@'ip或者%';flush privileges;刷新权限表
+   grant all on *.* to '用户名'@'localhost' with grant option;
+   注： 1.这是把所有的权限授权给这个用户并允许这个用户给其他用户授权,[ with grant option ] 代表此用户可以给其他用户授权  
+        2.如果不想授予所有权限可以在on 后面写 [ select 数据库名.表名 ]，代表授予这个数据库下这个表的查询权限
    update user set password=password('密码') where user='用户名';给用户修改密码
 4、create database samp_db character set gbk;创建数据库
 5、create table data_spider.citys(id int unsigned not null auto_increment primary key, city_name varchar(20) not null, city_number int unsigned not null, city_code char(10) not null);创建表
 6、show global variables like 'port';查看端口
 7、alter table user add unique key(`name`)设置某一列为唯一key，在insert的时候可以判断该列是否存在，存在则更新，不存在会新增
+   alter table xun1 add id int(6) not null primary key auto_increment first;  插入自增主键
+   insert的时候，自增主键可赋值为null
+   
+   
 8、insert into citys values("遵义",558,"ZYI") ON DUPLICATE KEY UPDATE city_name="遵义",city_number=558,city_code="ZYI";
 9、create table data_spider.low_price(src_city_name varchar(20) not null, src_city_number int unsigned not null, src_city_code char(10) not null, des_city_name varchar(20) not null, des_city_number int unsigned not null, des_city_code char(10) not null, low_price_list text not null);
 10、ALTER TABLE good_booked DROP INDEX good_id;想删除某个表中某个字段的unique key：
