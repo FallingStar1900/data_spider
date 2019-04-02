@@ -56,7 +56,7 @@ class GetAllStockInfo:
         days = int(self.mindays)
         now_year = datetime.datetime.now().year
         now_month = datetime.datetime.new().month
-        if now_month >0 and now_month < 4:
+        if now_month > 0 and now_month < 4:
             season = 1
         elif now_month >3 and now_month < 7:
             season = 2
@@ -64,7 +64,7 @@ class GetAllStockInfo:
             season = 3
         elif now_month >9 and now_month <13:
             season = 4
-        while true:
+        while True:
             url = "http://quotes.money.163.com/trade/lsjysj_" + code + ".html?year=" + now_year + "&season=" + season
             print(code)
             response = urllib.request.urlopen(url)
@@ -78,7 +78,7 @@ class GetAllStockInfo:
             while '' in tmp_info_number:
                 tmp_info_number.remove('')
             final_date = tmp_info_date[:days] + final_date
-            nums = len(tmp_info_data[:days]) * 10
+            nums = len(tmp_info_date[:days]) * 10
             final_number = tmp_info_number[:nums] + final_number
             if len(final_date) == days:
                 break
@@ -95,22 +95,22 @@ class GetAllStockInfo:
         print(final_number)
         print(len(final_date))
         print(len(final_number))
-        result = self.load_mysql(final_date, final_number)
+        result = self.data_operate(final_date, final_number)
         return 1
-
 
     def select_mysql(self, code):
         sql = "select code from stock_id where code=" + "\"" + code + "\"" + ";"
         return sql
 
-    def load_mysql(self, list_date, list_number):
+    def data_operate(self, list_date, list_number):
+        stock_info = {}
         length = len(list_date)
         if length * 10 != len(list_number):
             print("获取的数据中日期和数据的数量不匹配!")
             return -1
         i = 0
         while i<len(list_number):
-            stock_date = list_date[i]
+            stock_info["stock_date"] = list_date[i]
             start_price = list_number[i]
             max_price = list_number[i+1]
             min_price = list_number[i+2]
@@ -122,5 +122,8 @@ class GetAllStockInfo:
             swing_percent = list_number[i+8]
             turnover_percent = list_number[i+9]
             i = i + 10
-            #构造sql语句
+            #将数据写入dict中，后期可以转成json处理
+
         return
+
+    def mysql_operate(self, data_dict):
