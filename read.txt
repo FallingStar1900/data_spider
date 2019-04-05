@@ -25,11 +25,13 @@ mysql基本命令：
 6、show global variables like 'port';查看端口
 7、alter table user add unique key(`name`)设置某一列为唯一key，在insert的时候可以判断该列是否存在，存在则更新，不存在会新增
    alter table xun1 add id int(6) not null primary key auto_increment first;  插入自增主键
-   insert的时候，自增主键可赋值为null
-   
-   
+   insert的时候，自增主键可赋值为null  
 8、insert into citys values("遵义",558,"ZYI") ON DUPLICATE KEY UPDATE city_name="遵义",city_number=558,city_code="ZYI";
+   如果在insert语句后面带上ON DUPLICATE KEY UPDATE 子句，而要插入的行与表中现有记录的惟一索引或主键中产生重复值，那么就会发生旧行的更新；如果插入的行数据与现有表中记录的唯一索引或者主键不重复，则执行新纪录插入操作.如果唯一索引由两个字段组成，则只有满足两个字段都相同时，设置的update的那个字段才会更新，否则就会插入新数据。
+   create table stock_info(id int not null, code char(6) not null, date date not null primary key(code, date))这样code和date会成为主键
+
 9、create table data_spider.low_price(src_city_name varchar(20) not null, src_city_number int unsigned not null, src_city_code char(10) not null, des_city_name varchar(20) not null, des_city_number int unsigned not null, des_city_code char(10) not null, low_price_list text not null);
 10、ALTER TABLE good_booked DROP INDEX good_id;想删除某个表中某个字段的unique key：
 11、alter table TABLE_NAME add column NEW_COLUMN_NAME varchar(20) not null;增加一列
-12、create table data_spider.flight_info(src_des_airlineinfo varchar(20) not null,src_name varchar(20) not null,src_name_code char(10) not null,src_airport_name varchar(20) not null,src_airport_code char(5) not null, src_airport_number char(5) not null,des_name varchar(20) not null,des_name_code char(10) not null,des_airport_name varchar(20) not null,des_airport_code char(5) not null, des_airport_number char(5) not null,departure_data datetime not null,arrival_data datetime not null,punctualityRate char(5) not null,airlineName varchar(15) not null,flightNumber varchar(10) not null,craftTypeName varchar(20) not null, craftTypeKindDisplayName char(10) not null,lowest_price int unsigned not null,cabin_info text not null,stop_info text not null);
+12、删除某一行数据:delete from table where...
+
