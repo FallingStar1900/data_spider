@@ -34,4 +34,6 @@ mysql基本命令：
 10、ALTER TABLE good_booked DROP INDEX good_id;想删除某个表中某个字段的unique key：
 11、alter table TABLE_NAME add column NEW_COLUMN_NAME varchar(20) not null;增加一列
 12、删除某一行数据:delete from table where...
+13、delete from sh_stock_info where code = "601988" and valid_date not in (select a.valid_date from(select valid_date from sh_stock_info where code="601988" order by valid_date desc limit 10) as a);
+子查询里不能有limit，那么就子查询里用个类似的子查询.
 
