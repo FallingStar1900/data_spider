@@ -10,7 +10,7 @@ class GetStockInfo:
     def __init__(self, url, page):
         self.url = url
         self.page = page
-        self.db = pymysql.connect(host="localhost", user="xiangyu1987826", passwd="xiangyu1987826", db="stock_info", port=3306)
+        self.db = pymysql.connect(host="localhost", user="", passwd="", db="stock_info", port=3306)
         self.cur = self.db.cursor()
 
     def get_stock_info(self):
@@ -85,7 +85,6 @@ class GetStockInfo:
 
 
 if __name__ == "__main__":
-
     #is_rewrite_stock_id = input("是否重新抓取所有的股票代码(true/false):")
     is_rewrite_stock_id = "false"
     is_get_stock = input("请输入要爬取的股票代码的数量(all/some/single)(当要分析某些股票数据的时候用到some或single，否则选all):")
@@ -107,9 +106,9 @@ if __name__ == "__main__":
                 print("获取股票code失败")
     else:
         if is_get_stock == "all":
-            get_stock = GetAllStockInfo(is_get_stock)
+            mindays = input("请输出要获取信息的天数:")
+            get_stock = GetAllStockInfo(is_get_stock, mindays)
             get_stock.get_stock_info()
-            pass
         elif is_get_stock == "some":
             stock_code = input("请输入具体要获取信息的股票代码(请用逗号分隔):")
             mindays = input("请输出要获取信息的天数:")

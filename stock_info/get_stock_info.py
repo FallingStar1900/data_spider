@@ -15,13 +15,52 @@ class GetAllStockInfo:
         if self.ids_len != 0:
             self.stock_ids = argv[0]
             print("ids: %s" % self.stock_ids)
-        self.db = pymysql.connect(host="localhost", user="xiangyu1987826", passwd="xiangyu1987826", db="stock_info", port=3306)
+        self.db = pymysql.connect(host="localhost", user="", passwd="", db="stock_info", port=3306)
         self.cur = self.db.cursor()
 
+    def get_stock_all_id(self, codefirst):
+        sql = "select code from stock_id where code like " + "\"" + codefirst + "%" + "\";"
+        try:
+            self.cur.execute(sql)
+            self.db.commit()
+            stock_ids = self.cur.fetchall()
+            return stock_ids
+        except Exception as e:
+            self.db.rollback()
+            print(e)
+            return -1
+
     def get_stock_info(self):
+        fail_code = []
+        skip_code = []
         if self.ids_len == 0:
-            print(self.ids_len)
-            pass
+            #print(self.ids_len)
+            #分别读取sh，sz，cyb中的code，然后获取数据
+            #先获取上证A的id
+            for c in ["6", "0", "3"]:
+                res_id = self.get_stock_all_id(c)
+                for k in res_id:
+                    print("==========开始获取股票:%s的数据,获取天数:%s天==========" % (str(k[0]), self.mindays))
+                    result = self.spider_stock_info(str(k[0]))
+                    if result == 0:
+                        print("获取股票%s数据成功" % k[0])
+                        clear_res = self.clear_more_data(k[0])
+                        if clear_res == 0:
+                            print("删除股票%s中多余的天数成功" % str(k[0]))
+                        else:
+                            print("删除股票%s中多余的天数失败" % str(k[0]))
+                            fail_code.append(str(k[0]))
+                            continue
+                    elif result == -1:
+                        print("获取股票%s数据失败..." % str(k[0]))
+                        fail_code.append(str(k[0]))
+                        continue
+                    elif result == -2:
+                        skip_code.append(str(k[0]))
+                        continue
+            print("获取数据失败的股票:" + str(fail_code))
+            print("没有历史数据的股票:" + str(skip_code))
+            return 0
         else:
             ids = self.stock_ids.split(",")
             for item in ids:
@@ -33,24 +72,36 @@ class GetAllStockInfo:
                     #获取查询的结果，默认list，如果要dict 设置cursorclass = pymysql.cursors.DictCursor
                     flag = self.cur.fetchall()
                     if flag:
-                        print("stock code:%s is exists" % str(item))
+                        #print("stock code:%s is exists" % str(item))
+                        print("==========开始获取股票:%s的数据,获取天数:%s天==========" % (str(item), self.mindays))
                         #如果存在则爬取该id对应的信息，返回结果为json格式
                         result = self.spider_stock_info(str(item))
                         if result == 0:
-                            print("获取股票%s数据成功..." % str(item))
+                            print("获取股票%s数据成功" % str(item))
+                            clear_res = self.clear_more_data(str(item))
+                            if clear_res == 0:
+                                print("删除股票%s中多余的天数成功" % str(item))
+                            else:
+                                print("删除股票%s中多余的天数失败" % str(item))
+                                fail_code.append(str(item))
                             continue
-                        else:
-                            print("获取股票%s数据失败..." % str(item))
+                        elif result == -1:
+                            print("获取股票%s数据失败" % str(item))
+                            fail_code.append(str(item))
+                            continue
+                        elif result == -2:
+                            skip_code.append(str(item))
                             continue
                     else:
-                        print("stock code:%s is not exists..." % str(item))
+                        print("==========stock code:%s is not exists==========" % str(item))
+                        fail_code.append(str(item))
                 except Exception as e:
                     self.db.rollback()
                     print(e)
                     print(item)
                     continue
-            #print(ids)
-            self.db.close()
+            print("获取数据失败的股票:" + str(fail_code))
+            print("没有历史数据的股票:" + str(skip_code))
             return 0
 
     def spider_stock_info(self, code):
@@ -70,8 +121,8 @@ class GetAllStockInfo:
             season = 4
         #print(season)
         while True:
+            skip = "false"
             url = "http://quotes.money.163.com/trade/lsjysj_" + code + ".html?year=" + str(now_year) + "&season=" + str(season)
-            #print(code)
             response = urllib.request.urlopen(url)
             raw_data = response.read().decode("utf-8")
             s_date = r"<tr class='[a-zA-Z]*'><td>(\d{4}-\d{1,2}-\d{1,2})</td>"
@@ -80,6 +131,10 @@ class GetAllStockInfo:
             pat_number = re.compile(s_number)
             tmp_info_date = pat_date.findall(raw_data)
             tmp_info_number = pat_number.findall(raw_data)
+            if not tmp_info_date or not tmp_info_number:
+                print("股票%s没有历史数据，将跳过该股票" % code)
+                skip = "true"
+                break
             while '' in tmp_info_number:
                 tmp_info_number.remove('')
             final_date = tmp_info_date[:days] + final_date
@@ -103,13 +158,37 @@ class GetAllStockInfo:
         #print(final_number)
         #print(len(final_date))
         #print(len(final_number))
-        result = self.data_operate(code, final_date, final_number)
-        return result
+        if skip == "true":
+            return -2
+        else:
+            result = self.data_operate(code, final_date, final_number)
+            return result
 
     def select_mysql(self, code):
         sql = "select code from stock_id where code=" + "\"" + code + "\"" + ";"
         return sql
 
+    def clear_more_data(self, code):
+        #delete from sh_stock_info where code = "601988" and valid_date not in
+        #(select a.valid_date from(select valid_date from sh_stock_info where code="601988" order by valid_date desc limit 10) as a);
+        if code[0] == "6":
+            dbs = "sh_stock_info"
+        elif code[0] == "0":
+            dbs = "sz_stock_info"
+        elif code[0] == "3":
+            dbs = "cyb_stock_info"
+        sql = "delete from %s where code = \"%s\" and valid_date not in " % (dbs, code) + \
+              "(select a.valid_date from (select valid_date from %s " % dbs + \
+              "where code = \"%s\" order by valid_date desc limit %s) as a);" % (code, int(self.mindays))
+        try:
+            self.cur.execute(sql)
+            self.db.commit()
+            return 0
+        except Exception as e:
+            self.db.rollback()
+            print(e)
+            return -1
+             
     def data_operate(self, code, list_date, list_number):
         stock_info = {}
         temp_dict = {}
@@ -147,7 +226,7 @@ class GetAllStockInfo:
         dateList = data_dict["stock_date"].keys()
         #print(dateList)
         for i in dateList:
-            tempDict =  data_dict["stock_date"][i]
+            tempDict = data_dict["stock_date"][i]
             vd = i
             sp = tempDict["start_price"]
             maxp = tempDict["max_price"]
