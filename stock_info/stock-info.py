@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import os
 import sys
 import re
@@ -40,10 +41,10 @@ class GetStockInfo:
             if code[0] == "6":
                 trade_place = "SHA"
                 allCodeList.append(code)
-            elif code[0] == "3":
+            elif code[0] == "0":
                 trade_place = "SZA"
                 allCodeList.append(code)
-            elif code[0] == "0":
+            elif code[0] == "3":
                 trade_place = "CYB"
                 allCodeList.append(code)
             else:
