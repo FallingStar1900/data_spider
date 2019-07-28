@@ -84,7 +84,48 @@ class GetStockInfo:
             print(e)
             return -1
 
+    def GetStockInfos(self):
+        # is_rewrite_stock_id = input("是否重新抓取所有的股票代码(true/false):")
+        is_rewrite_stock_id = "false"
+        is_get_stock = input("请输入要爬取的股票代码的数量(all/some/single)(当要分析某些股票数据的时候用到some或single，否则选all):")
+        #is_get_stock = "all"
+        page = 1
+        pageAll = 185
+        if is_rewrite_stock_id == "true":
+            while page <= pageAll:
+                if page == 1:
+                    url = "http://www.yz21.org/stock/info/"
+                else:
+                    url = "http://www.yz21.org/stock/info/stocklist_" + str(page) + ".html"
+                print(url)
+                StockInfo = GetStockInfo(url, page)
+                status = StockInfo.get_stock_info()
+                page = page + 1
+                if status == 0:
+                    print("获取股票code成功")
+                else:
+                    print("获取股票code失败")
+        else:
+            if is_get_stock == "all":
+                mindays = input("请输入要获取信息的天数:")
+                get_stock = GetAllStockInfo(is_get_stock, mindays)
+                get_stock.get_stock_info()
+            elif is_get_stock == "some":
+                stock_code = input("请输入具体要获取信息的股票代码(请用逗号分隔):")
+                mindays = input("请输出要获取信息的天数:")
+                # mindays=60
+                # stock_code = "002031"
+                print(stock_code)
+                get_stock = GetAllStockInfo(is_get_stock, mindays, stock_code)
+                get_stock.get_stock_info()
+            elif is_get_stock == "single":
+                stock_code = input("请输入具体要获取信息的股票代码:")
+                mindays = input("请输出要获取信息的天数:")
+                get_stock = GetAllStockInfo(is_get_stock, mindays, stock_code)
+                get_stock.get_stock_info()
+        return mindays
 
+'''
 if __name__ == "__main__":
     #is_rewrite_stock_id = input("是否重新抓取所有的股票代码(true/false):")
     is_rewrite_stock_id = "false"
@@ -124,3 +165,4 @@ if __name__ == "__main__":
             get_stock = GetAllStockInfo(is_get_stock, mindays, stock_code)
             get_stock.get_stock_info()
         exit(0)
+'''

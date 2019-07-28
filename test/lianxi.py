@@ -2,8 +2,8 @@ import os
 import sys
 
 a = [4, 2, 6, 9, 45, 21, 4, 5, 6, 3, 2, 3, 4, 4, 9, 11, 34, 555, 0]
-print(a)
-print(len(a))
+#print(a)
+#print(len(a))
 
 def sort_bubble():
     i = len(a) - 1
@@ -17,8 +17,6 @@ def sort_bubble():
             j = j + 1
         i = i - 1
     return a
-
-
 
 def sort_choice():
     print(a)
@@ -144,19 +142,78 @@ def search_binary(b, key):
         else:
             return mid
 
+import operator
+def IsPopOrder(pushV1, popV):
+    if len(pushV1) == 0 and len(popV) == 0:
+        return False
+    if pushV1 is None and popV is not None:
+        return False
+    if pushV1 is not None and popV is None:
+        return False
+    if len(pushV1) != len(popV):
+        return False
+    lens = len(pushV1)
+    aa = []
+    while lens > 0:
+        aa.append(pushV1[lens - 1])
+        lens = lens - 1
+    while aa:
+        if aa.pop() != popV.pop():
+            return False
+    return True
 
-
+def MoreThanHalfNum(numbers):
+    if len(numbers) == 0:
+        return None
+    x = len(numbers) / 2
+    flag = numbers[0]
+    times = 1
+    for i in numbers[1:]:
+        if times == 0:
+            flag = i
+            times = 1
+        elif i == flag:
+            times += 1
+        else:
+            times -= 1
+    times = 0
+    for i in numbers:
+        if i == flag:
+            times += 1
+    if times > x:
+        return flag
+import collections
+def FindApperOnce(array):
+    dicts = collections.Counter(array)
+    a = []
+    for item,num in dicts.items():
+        if num == 1:
+            a.append(item)
+    if a is None:
+        return None
+    else:
+        return a
 
 if __name__ == "__main__":
+    a = [1,3,3,4,4,6,5,5,8]
+    print(FindApperOnce(a))
+    #print(MoreThanHalfNum(a))
     '''
+    a = []
+    b = []
+    res = IsPopOrder(a, b)
+    print(res)
+
+    
     sort_choice()
     b = [None] * len(a)
     sort_heap(0, len(a)-1)
     print(a)
     sort_quick(0, len(a)-1)
     print(a)
-    '''
+
     b = sort_bubble()
     print(b)
     keys = search_binary(b, 6)
     print(keys)
+    '''

@@ -10,6 +10,10 @@ import heapq
 import math
 import matplotlib.pyplot as plt
 import threadpool
+from stock_info.get_stock_id_and_info import GetStockInfo
+from stock_info.get_stock_plate import GetStockPlateInfo
+from stock_info.get_result_info import GetResultInfo
+
 #python 3.0自带的未来趋势的模块
 from concurrent.futures import ThreadPoolExecutor
 
@@ -23,20 +27,29 @@ class ModelStockNetShare:
             self.codes_list = argv[0]
             self.isGetNewSource = argv[2]
 
-
     def GetHistoryData(self):
         threads = 10
-        pool = threadpool.ThreadPool(threads)
+        pool1 = threadpool.ThreadPool(threads)
+        pool2 = threadpool.ThreadPool(threads)
         if self.isGetNewSource == "true":
+
             requests = threadpool.makeRequests(self.GetHistoryMoneyNewSource, self.codes_list)
             for req in requests:
-                pool.putRequest(req)
-            pool.wait()
+                pool1.putRequest(req)
+            pool1.wait()
+
+            if isGetAllHistoryMoneyAgain == "true":
+                requests = threadpool.makeRequests(self.GetHistoryMoney, self.codes_list)
+                for req in requests:
+                    pool2.putRequest(req)
+                pool2.wait()
+
         else:
             requests = threadpool.makeRequests(self.GetHistoryMoney, self.codes_list)
             for req in requests:
-                pool.putRequest(req)
-            pool.wait()
+                pool2.putRequest(req)
+            pool2.wait()
+        return 0
 
     def GetHistoryMoneyNewSource(self, coder):
         print("=====开始获取股票%s历史资金数据=====" % coder)
@@ -45,6 +58,7 @@ class ModelStockNetShare:
         div_number = int(coder) % divs
         print(div_number)
         s_json = {}
+        types = 1
 
         if coder[0] == "6":
             f_path = foutpath_sh + '/' + str(div_number)
@@ -64,23 +78,26 @@ class ModelStockNetShare:
         token = "acces_token=1942f5da9b46b069953c873404aad4b5&"
         ids = "id=" + coder + str(types) + "&_=" + str(times)
         url = url1 + url2 + token + ids
-        try:
-            response = urllib.request.urlopen(url)
-        except Exception:
-            response = urllib.request.urlopen(url)
+        ii = 0
+        while ii < 5:
+            try:
+                response = urllib.request.urlopen(url)
+                break
+            except Exception:
+                ii = ii + 1
         raw_data = response.read().decode('utf-8')
         info = raw_data.split('=')[1].strip('({data:})')
-        print(info)
+        #print(info)
         s_info = r'\d{4}[-/]?\d{2}[-/]?\d{2}'
         pat_info = re.compile(s_info)
         dates = pat_info.findall(info)
-        print(dates)
+        #print(dates)
         nums = len(dates)
         info_1 = info.split(',')
-        print(info_1)
+        #print(info_1)
         if nums * 13 != len(info_1) and nums == 0:
             fail_code_list.append(coder)
-            return
+            return -1
         i = 0
         j = 0
         while i < len(info_1):
@@ -142,18 +159,26 @@ class ModelStockNetShare:
         f2.close()
 
     def GetMaxPage(self, url_1, coder):
-        response = urllib.request.urlopen(url_1)
-        raw_data = response.read().decode('utf-8')
-        s_code = r'<a href="/trade/lszjlx_' + coder + '[,0-9]*\.html">([0-9]+)</a>'
-        pat = re.compile(s_code)
-        info = pat.findall(raw_data)
-        maxs = info[-1]
+        i = 0
+        maxs = 1
+        while i<5:
+            try:
+                response = urllib.request.urlopen(url_1)
+                raw_data = response.read().decode('utf-8')
+                s_code = r'<a href="/trade/lszjlx_' + coder + '[,0-9]*\.html">([0-9]+)</a>'
+                pat = re.compile(s_code)
+                info = pat.findall(raw_data)
+                maxs = info[-1]
+                break
+            except Exception:
+                i = i + 1
         return maxs
 
     def GetHistoryMoney(self, coder):
         print("=====开始获取股票%s历史资金数据=====" % coder)
         i = 0
         fail_page_list = []
+        fail_get_list = []
         f_path = ""
         div_number = int(coder) % divs
         print(div_number)
@@ -175,6 +200,7 @@ class ModelStockNetShare:
         #获取每个股票历史数据的最大页数
         tmp_url = "http://quotes.money.163.com/trade/lszjlx_" + coder + ".html#01b08"
         pages = self.GetMaxPage(tmp_url, coder)
+        is_ok = "true"
 
         while i < int(pages):
             #print("开始获取第 %s 页的数据..." % (i + 1))
@@ -192,12 +218,15 @@ class ModelStockNetShare:
             pat_zdf = re.compile(s_zdf)
             pat_net_share = re.compile(s_net_share)
             pat_inout = re.compile(s_inout)
-
-            info_date = pat_date.findall(raw_data)
-            info_price = pat_price.findall(raw_data)
-            info_zdf = pat_zdf.findall(raw_data)
-            info_net_share = pat_net_share.findall(raw_data)
-            info_inout = pat_inout.findall(raw_data)
+            try:
+                info_date = pat_date.findall(raw_data)
+                info_price = pat_price.findall(raw_data)
+                info_zdf = pat_zdf.findall(raw_data)
+                info_net_share = pat_net_share.findall(raw_data)
+                info_inout = pat_inout.findall(raw_data)
+            except Exception:
+                is_ok = "false"
+                break
 
             # 删除info_inout中的空元素
             del info_inout[0]
@@ -220,7 +249,12 @@ class ModelStockNetShare:
                     self.WriteJsonData(coder, s_json, f_path, nums, info_date, info_price, info_zdf, info_inout, info_net_share)
                     tmp_max_days = left_num
             i = i + 1
-        print("股票%s获取历史资金流动数据成功" % coder)
+        if is_ok == "true":
+            print("股票%s获取历史资金流动数据成功" % coder)
+        else:
+            print("股票%s获取历史资金流动数据失败" % coder)
+            fail_get_list.append(coder)
+
         #print(info_date)
         #print(info_net_share)
         #print(info_inout)
@@ -255,17 +289,100 @@ class ModelStockNetShare:
             f2.write(f_json)
             f2.close()
 
-    def GetCurStockValue(self, place, code):
-        url = "https://gupiao.baidu.com/stock/" + place + code + ".html"
-        response = urllib.request.urlopen(url)
-        raw_data = response.read().decode('utf-8')
-        s_value = r'<dt>流通市值</dt><dd>(\d*.*\d*亿)</dd>'
-        pat_stock = re.compile(s_value)
-        info_stock_value = pat_stock.findall(raw_data)
-        print(info_stock_value)
-        if len(info_stock_value) == 0:
-            return 0
-        return info_stock_value[0]
+    def GetCurStockValue(self, place, coders):
+        s_data = {}
+        out_json = ""
+        #datas = "2019-05-24"
+        #coders = "601988"
+        #riqi = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+        div_number = int(coders) % divs
+        f_path = ""
+        if coders[0] == "6":
+            f_path = foutpath_sh + '/' + str(div_number)
+        elif coders[0] == "0":
+            f_path = foutpath_sz + '/' + str(div_number)
+        elif coders[0] == "3":
+            f_path = foutpath_cyb + '/' + str(div_number)
+        f_file = f_path + "/" + coders + "_" + str(div_number) + "_stockValueHistory"
+        #print(f_file)
+        if os.path.exists(f_file) and os.path.getsize(f_file) != 0:
+            f_r = open(f_file, 'r')
+            s_dics = json.load(f_r)
+            da_list = s_dics.keys()
+            if datas in da_list:
+                return float(s_dics[datas])
+        repeat = 5
+        z = 0
+        info_stock_datas = []
+        info_stock_value = []
+        while z < repeat:
+            url = "https://gupiao.baidu.com/stock/" + place + coders + ".html"
+            print("get stock_value url is : %s" % url)
+            try:
+                response = urllib.request.urlopen(url)
+                raw_data = response.read().decode('utf-8')
+            except Exception:
+                z = z + 1
+                time.sleep(2)
+                #print(z)
+                continue
+            s_value = r'<dt>流通市值</dt><dd>(\d*.*\d*亿)</dd>'
+            s_datas = r'<span class="state f-up">已休市 (\d{4}-\d{1,2}-\d{1,2})'
+            pat_stock = re.compile(s_value)
+            pat_datas = re.compile(s_datas)
+            info_stock_value = pat_stock.findall(raw_data)
+            info_stock_datas = pat_datas.findall(raw_data)
+            if len(info_stock_value) == 0 or len(info_stock_datas) == 0:
+                z = z + 1
+                time.sleep(1)
+                #print(z)
+                continue
+            #print(info_stock_datas)
+            break
+        #if z < 5:
+            #return -1
+        if len(info_stock_value) == 0 or z == 5:
+            url_bak = "http://q.stock.sohu.com/cn/" + coders + "/index.shtml"
+            print(url_bak)
+            response_bak = urllib.request.urlopen(url_bak)
+            raw_data_bak = response_bak.read().decode('gbk')
+            s_value_bak = r'<td class="td2">(\d+.*\d*)</td>'
+            pat_stock_bak = re.compile(s_value_bak)
+            info_stock_value_bak = pat_stock_bak.findall(raw_data_bak)
+            stock_val = float(info_stock_value_bak[6])*10000
+            price_bak = "http://quotes.money.163.com/trade/lsjysj_" + coders + ".html#01b07"
+            response_price = urllib.request.urlopen(price_bak)
+            raw_data_price = response_price.read().decode("utf-8")
+            s_number = r"<td[\s]*[a-z=]*\'*[a-zA-Z]*\'*>(\d*,*\d*,*\d*,*-*\d*\.*\d*)</td>"
+            price_pat_number = re.compile(s_number)
+            end_pri = price_pat_number.findall(raw_data_price)
+            while '' in end_pri:
+                end_pri.remove('')
+            if len(end_pri) == 0:
+                return -1
+            print(end_pri)
+            final_stock_value = str(float(stock_val) * float(end_pri[3])/100000000)
+        else:
+            final_stock_value = info_stock_value[0]
+        #积累历史数据
+        f_w = open(f_file, 'w+')
+        #if len(info_stock_datas) == 0:
+            #return -1
+        try:
+            s_data[info_stock_datas[0]] = final_stock_value.strip("亿")
+        except Exception:
+            print("Error info is: %s " % str(info_stock_value))
+        if os.path.getsize(f_file) == 0:
+            s_json = json.dumps(s_data, indent=4)
+            out_json = s_json
+        else:
+            tmp_dict = json.load(f_w)
+            s_json = dict(s_data, **tmp_dict)
+            out_json = json.dumps(s_json, indent=4)
+        f_w.write(out_json)
+        f_w.close()
+        print(coders, final_stock_value)
+        return final_stock_value
 
     def FilterData(self, dics):
         threshold = 8.0
@@ -292,14 +409,22 @@ class ModelStockNetShare:
         elif coder[0] == "3":
             f_path = foutpath_cyb + '/' + str(div_number)
             place = "sz"
-        try:
-            f = open(f_path + '/' + str(coder) + '_' + str(div_number) + '_moneyHistory', 'r')
-        except Exception:
-            return
-        try:
-            f_new = open(f_path + '/' + 'new_' + str(coder) + '_' + str(div_number) + '_moneyHistory', 'r')
-        except Exception:
-            return
+        if os.path.exists(f_path + '/' + str(coder) + '_' + str(div_number) + '_moneyHistory'):
+            if os.path.getsize(f_path + '/' + str(coder) + '_' + str(div_number) + '_moneyHistory') != 0:
+                f = open(f_path + '/' + str(coder) + '_' + str(div_number) + '_moneyHistory', 'r')
+        else:
+            print("open code: %s file is fail !" % str(coder))
+            return -1
+            #exit(0)
+        if os.path.exists(f_path + '/' + 'new_' + str(coder) + '_' + str(div_number) + '_moneyHistory'):
+            if os.path.exists(f_path + '/' + 'new_' + str(coder) + '_' + str(div_number) + '_moneyHistory') != 0:
+                f_new = open(f_path + '/' + 'new_' + str(coder) + '_' + str(div_number) + '_moneyHistory', 'r')
+                files = f_path + '/' + 'new_' + str(coder) + '_' + str(div_number) + '_moneyHistory'
+                print("path is: %s" % files)
+        else:
+            print("open code: %s new file is fail !" % coder)
+            return -1
+            #exit(0)
 
         dicts = json.load(f)
         dicts_new = json.load(f_new)
@@ -309,7 +434,8 @@ class ModelStockNetShare:
 
         # 获取当天的流动市值
         cur_value = self.GetCurStockValue(place, coder)
-        if cur_value == 0:
+        print("%s cur_value is : %s" % (coder,cur_value))
+        if cur_value == -1:
             return
         cur_value = float(cur_value.strip('亿'))
         # 对获取的老数据的处理
@@ -335,8 +461,6 @@ class ModelStockNetShare:
         self.GetJlrFangCha(money_net_share_list_temp)
         #print(money_net_share_list_temp)
 
-        #=======求所有能获得的数据的资金净流入与价格涨跌幅度的比值的标准差=======
-        self.GetJlr_Zdf_Fangcha(money_net_share_list_temp, change_percent_temp)
         '''
         market_value_temp.pop()
         #print(market_value_temp)
@@ -360,29 +484,70 @@ class ModelStockNetShare:
         end_price_list = end_price_list_temp[0:iindex]
         money_net_share_list = money_net_share_list_temp[0:iindex]
         change_percent_list = change_percent_temp[0:iindex]
-        print("股票代码: %s, 有效的流通市值数量样本:%s,价格数量样本:%s,流通股数差值的数量样本:%s" % (coder, len(market_value), len(end_price_list), indexs))
+        #print("股票代码: %s, 有效的流通市值数量样本:%s,价格数量样本:%s,流通股数差值的数量样本:%s" % (coder, len(market_value), len(end_price_list), indexs))
         #print(dicts)
         #print(len(dicts.keys()))
-
-        # =====参考指标1========每天所有流动股数的环比差值,同时求平均========
-        # 因为前面多获取了一个数据，因此这里需要去除最后一个数据用于计算股数差值之和，这个值会更趋近于0
-        result = self.Predict_1(sums, market_value, end_price_list)
-
-        # =====参考指标2========历史的大单资金流入状况分析
         zhuli_jlr_percent_list = []
+        new_change_percent_list = []
+        new_zhuli_jlr_list = []
         for keys_new_date in dicts_new.keys():
             zhuli_jlr_per = dicts_new[keys_new_date]["zhuli_jlr_percent"].strip('%')
+            tmp_change_percent = dicts_new[keys_new_date]["change_percent"].strip('%')
+            zhuli_jlr = dicts_new[keys_new_date]["zhuli_jlr"]
             if zhuli_jlr_per == "-":
                 zhuli_jlr_per = 0.0
             zhuli_jlr_percent_list.append(zhuli_jlr_per)
+            new_change_percent_list.append(tmp_change_percent)
+            new_zhuli_jlr_list.append(zhuli_jlr)
+        zhuli_jlr_percent_list.reverse()
+        new_change_percent_list.reverse()
+        new_zhuli_jlr_list.reverse()
+
+        # =====参考指标1========每天所有流动股数的环比差值,同时求平均======== 0.4
+        # 因为前面多获取了一个数据，因此这里需要去除最后一个数据用于计算股数差值之和，这个值会更趋近于0
+        result = self.Predict_1(sums, market_value, end_price_list)
+
+        # =====参考指标2========历史的大单资金流入状况分析 0.2
         bzc = self.CalBzc(zhuli_jlr_percent_list)
         avgs = self.GetJlrFangCha(zhuli_jlr_percent_list)
         result_new = self.Predict_2(zhuli_jlr_percent_list, bzc, avgs)
 
-        #各指标取交集
+        # =====参考指标3====== 求所有能获得的数据的资金净流入与价格涨跌幅度的比值的标准差 0.1
+        bzc_3, avg_3 = self.GetJlr_Zdf_Fangcha(zhuli_jlr_percent_list, new_change_percent_list)
+        result_new_3 = self.Predict_3(bzc_3, bzc)
+
+        # =====参考指标4====== 资金流入前n日的净流入总和最接近0的值，第m-n日的主力资金净流入状况为负，则m+1的主力资金流入为正，用new的数据 0.3
+        close_index, close_sum = self.GetSumCloseZero(new_zhuli_jlr_list)
+        result_new_4 = self.Predict_4(close_index, new_zhuli_jlr_list)
+
+        # =====参考指标5====== 每个前n日的资金流入和的标注差，再求每个标准差的标准差m，当n<m时，表明上涨 0.2
+        result_new_5 = self.Predict_5(new_zhuli_jlr_list)
+        print(result_new_5)
+
+        # =====参考指标6====== 每个前n日的资金净流入大于0的占比，再求每个占比的标准差，当最近一天大于标准差，表明资金净流入为正占上风0.2
+        result_new_6 = self.Predict_6(new_zhuli_jlr_list)
+
+        # 各指标取交集
         f_res = open(f_result, 'a+')
-        if result == "price_up" and result_new == "price_up":
-            f_res.write(coder + '\n')
+        score1, score2, score3, score4, score5, score6 = 0, 0.001, 0.0001, 00.001, 0.001, 0
+        if result == "price_up":
+            score1 = float(scores[0])
+        if result_new == "price_up":
+            score2 = float(scores[1])
+        if result_new_3 == "price_up":
+            score3 = float(scores[2])
+        if result_new_4 == "price_up":
+            score4 = float(scores[3])
+        if result_new_5 == "price_up":
+            score5 = float(scores[4])
+        if result_new_6 == "price_up":
+            score6 = float(scores[5])
+
+        final_score = score1 + score2 + score3 + score4 + score5 + score6
+        print("final_score:%s, final_thread:%s" % (final_score, final_thred))
+        if final_score > float(final_thred):
+            print("预测结果：未来的一天该股票: %s 收盘价相对于前一天收盘价会上涨" % coder)
+            f_res.write(coder + "," + str(final_score) + '\n')
 
         #net_stock_bzc = self.CalBzc(net_stock_lists)
         #print("参考指标1（流通股数差值的标准方差是）: %s" % str(net_stock_bzc))
@@ -391,18 +556,92 @@ class ModelStockNetShare:
         #self.GetJlrFangCha(money_net_share_list)
         #self.GetJlr_Zdf_Fangcha(money_net_share_list, change_percent_list)
 
-    # 对大单的资金流入情况做预估（机构活跃度和机构研究度）
+    def Predict_6(self, new_zhuli_jlr_list):
+        percent_list = []
+        lens = len(new_zhuli_jlr_list)
+        a = 0
+        while a < lens:
+            new_zhuli_jlr_list_bak = new_zhuli_jlr_list[0:a+1]
+            su = len(new_zhuli_jlr_list_bak)
+            j = 0
+            count = 0
+            all = 0
+            while j < su:
+                jlr_lists = new_zhuli_jlr_list_bak[j:su]
+                jlr_sum = self.CalSum(jlr_lists)
+                if jlr_sum > 0:
+                    count = count + 1
+                all = all + 1
+                j = j + 1
+            n_per = count / all
+            percent_list.append(n_per)
+            a = a + 1
+        final_per_bzc = self.CalBzc(percent_list)
+        if percent_list[0] > final_per_bzc:
+            return "price_up"
+        else:
+            return "price_down"
+
+    def Predict_5(self, new_zhuli_jlr_list):
+        lens = len(new_zhuli_jlr_list)
+        #print(new_zhuli_jlr_list)
+        bzc_lists = []
+        a = 0
+        while a < lens:
+            new_zhuli_jlr_list_bak = new_zhuli_jlr_list[0:a+1]
+            #print(new_zhuli_jlr_list_bak)
+            su = len(new_zhuli_jlr_list_bak)
+            sum_lists = []
+            j = 0
+            while j < su:
+                jlr_lists = new_zhuli_jlr_list_bak[j:su]
+                jlr_sum = self.CalSum(jlr_lists)
+                if jlr_sum == 0:
+                    jlr_sum = 0.01
+                sum_lists.append(jlr_sum)
+                j = j + 1
+            bzc_sum_jlr_n = self.CalBzc(sum_lists)
+            bzc_lists.append(bzc_sum_jlr_n)
+            a = a + 1
+        final_bzc_jlr_n = self.CalBzc(bzc_lists)
+        if bzc_lists[0] < final_bzc_jlr_n:
+            return "price_up"
+        else:
+            return "price_down"
+
+    # 资金流入前n日的净流入总和最接近0的值，第m-n日的主力资金净流入状况为负，则m+1的主力资金流入为正，用new的数据
+    def Predict_4(self, close_index, new_zhuli_jlr_list):
+        if int(close_index) + 1 == len(new_zhuli_jlr_list):
+            refer_index = int(close_index)
+        else:
+            refer_index = int(close_index) + 1
+        refer_jlr = new_zhuli_jlr_list[refer_index]
+        if float(refer_jlr) < 0:
+            return "price_up"
+        else:
+            return "price_down"
+
+    # 分析主力资金占比/涨跌幅的系数的标注差，乘以10%=主力净占比，如果大于净占比的标准差，表明第二天会有10%的涨幅
+    def Predict_3(self, bzcs, bzc_zhuli_jlr_percent):
+        #默认涨幅10%
+        per = up_change_percent
+        zhuli_percent = float(bzcs) * float(per)
+        if zhuli_percent > bzc_zhuli_jlr_percent:
+            return "price_up"
+        elif float(bzcs) < bzc_zhuli_jlr_percent:
+            return "price_down"
+
+    # 对大单的资金流入情况做预估（机构活跃度和机构研究度）求了概率
     def Predict_2(self, lists, bzc, avgs):
         fuzhi_sum = 0
         if avgs <= 0 and float(lists[0]) < bzc:
             for i in lists:
                 if float(i) <= 0.0:
                     fuzhi_sum = fuzhi_sum + 1
-            if float(fuzhi_sum / len(lists)) > 0.5:
+            if float(fuzhi_sum / len(lists)) > 0.8:
                 return "price_up"
         else:
             return "price_down"
-
 
     def Predict_1(self, sums, market_value, end_price_list):
         pre_net_stock_sum = sums
@@ -424,9 +663,16 @@ class ModelStockNetShare:
                 #print("预测结果：未来的一天该股票收盘价相对于前一天收盘价会上涨,但准确率可能只有百分之五十，涨幅在: %s" % (math.fabs(tt1)))
                 return "price_up_possible"
             else:
-                print("预测结果：未来的一天该股票收盘价相对于前一天收盘价会上涨，涨幅在：%s " % (math.fabs(tt1)))
+                #print("预测结果：未来的一天该股票收盘价相对于前一天收盘价会上涨，涨幅在：%s " % (math.fabs(tt1)))
                 return "price_up"
-        pass
+
+    def CalSum(self, lists):
+        i = 0
+        sum = 0
+        while i < len(lists):
+            sum = sum + float(lists[i])
+            i = i + 1
+        return sum
 
     # 获取净流入资金的方差，表示流动资金的变动程度
     def GetJlrFangCha(self, net_share_list):
@@ -453,11 +699,11 @@ class ModelStockNetShare:
             kk = float(jlr_1) / float(self.CalBzc(tmp_lists))
             k_lists.append(kk)
             nn = nn + 1
-        print("资金净流入的第n天和前n-1天的标准差的比值分别为: %s" % str(k_lists))
+        #print("资金净流入的第n天和前n-1天的标准差的比值分别为: %s" % str(k_lists))
         # print(len(k_lists))
         # 求k_lists的方差
         k_bzfc = self.CalBzc(k_lists)
-        print("资金净流入的第n天和前n-1天的标准差的比值k的标准差为: %s" % k_bzfc)
+        #print("资金净流入的第n天和前n-1天的标准差的比值k的标准差为: %s" % k_bzfc)
         return jlr_avg
 
     # 获取资金净流入与价格涨跌幅度的比值的标准差
@@ -470,13 +716,20 @@ class ModelStockNetShare:
         while z < len(jlr_list):
             jlr_price = jlr_list[z]
             zdf_change = zdf_list[z]
-            if zdf_change == 0:
-                zdf_change == 0.0001
-            k_temp = float(jlr_price) / float(zdf_change)
+            if str(zdf_change) == "0":
+                zdf_change = 1.0
+            try:
+                k_temp = float(jlr_price) / float(zdf_change)
+            except Exception:
+                print(jlr_price)
+                print(zdf_change)
+                exit(-1)
             k_jlr_zdf.append(k_temp)
             z = z + 1
         jlr_zdf_fangcha = self.CalBzc(k_jlr_zdf)
-        print("资金净流入与涨跌幅比值前n天的标准差为: %s" % str(jlr_zdf_fangcha))
+        jlr_zdf_avg = self.GetJlrFangCha(k_jlr_zdf)
+        return [float(jlr_zdf_fangcha), jlr_zdf_avg]
+        #print("资金净流入与涨跌幅比值前n天的标准差为: %s" % str(jlr_zdf_fangcha))
 
     # 计算标准差
     def CalBzc(self, lists):
@@ -550,6 +803,24 @@ class ModelStockNetShare:
         # 这里需要加1，因为是差值样本，最后一个数据没有差值，但也要再获取数据的时候加上，因此加1
         return [close_index+1, close_sum]
 
+    def GetSumCloseZero(self, tmp_list):
+        a1 = float(tmp_list[0])
+        abs_a1 = math.fabs(a1)
+        length = len(tmp_list)
+        sum1 = a1
+        t = 1
+        close_num = 0
+        close_sum = 0
+        while t < length:
+            sum1 = sum1 + float(tmp_list[t])
+            if math.fabs(sum1) < abs_a1:
+                abs_a1 = math.fabs(sum1)
+                close_num = t
+                close_sum = sum1
+            t = t + 1
+        #close_num是索引，最大值也比length小1
+        return [close_num, close_sum]
+
     #根据数据绘制图标
     def PlotPic(self, list1, list2):
         pass
@@ -559,26 +830,44 @@ class ModelStockNetShare:
         pool = threadpool.ThreadPool(threads)
         requests = threadpool.makeRequests(self.CaculateNetShare, self.cal_list)
         for req in requests:
-            pool.putRequest(req)
+            pool.putRequest(req, timeout=30)
         pool.wait()
 
 
 if __name__ == "__main__":
+    predictor_nums = 6
+    scores = [0.25, 0.2, 0.1, 0.25, 0.15, 0.05]
+    final_thred = 0.8
+    d1 = time.time()
     db = pymysql.connect(host="localhost", user="", passwd="", db="stock_info", port=3306)
     cur = db.cursor()
     foutpath = "/Users/liliangliang6/Desktop/study-code/dev/stock_info"
     foutpath_sh = foutpath + "/sh"
     foutpath_sz = foutpath + "/sz"
     foutpath_cyb = foutpath + "/cyb"
+    '''
+    test = ModelStockNetShare("sh", "601988")
+    divs = 5
+    aa = test.GetCurStockValue("sh", "601988")
+    print(aa)
+    exit(0)
+    '''
     #isGetAllHistoryMoneyAgain = input("请问是否重新获取各股票的历史资金流动数据(true/false):")
     #analysis_days = input("请输入要获取并进行分析的数据的数量(天数):")
-    #analysis_days = 90
+    maxdays = 30
     analysis_days = "all"
-    isGetAllHistoryMoneyAgain = "false"
+    #isGetAllHistoryMoneyAgain = "true"
     isGetSomeSample = "true"
-    isGetHistoryMoneyFromNewSource = "false"
+    isGetHistoryMoneyFromNewSource = "true"
     #isCaculateHistoryNetShare = input("请问是否对股票%s的流通股的增减净值进行分析(true/false):" % codes[0])
     isCaculateHistoryNetShare = "true"
+    #max_prce = input("请输入要关注的股票的最大价格（元）:)
+    max_price = 15.0
+    #up_change_percent = input("请输入要关注的股票第二天的最大预测涨幅是:")
+    up_change_percent = 10
+
+    # 获取最新的有数据的日期
+    flag_code = "601988"
 
     sql_code = "select code from stock_id"
     #sql_code = "select code from sh_stock_info where end_price <10.0 and end_price >5.0 and date_format(valid_date, '%Y-%m-%d')='2019-04-19'"
@@ -586,18 +875,42 @@ if __name__ == "__main__":
     db.commit()
     # 把每个交易市场的股票分成多少份，分别创建一个目录
     divs = 5
+    divides = int(flag_code) % divs
+    tmp_path = foutpath_sh
+    if flag_code[0] == "6":
+        tmp_path = foutpath_sh
+    elif flag_code[0] == "0":
+        tmp_path = foutpath_sz
+    elif flag_code[0] == "3":
+        tmp_path = foutpath_cyb
+    flag_path = tmp_path + '/' + str(divides) + '/' + flag_code + "_" + str(divides) + "_moneyHistory"
+    flag_url = "http://quotes.money.163.com/trade/lszjlx_" + flag_code + ".html"
+    print(flag_url)
+    flag_response = urllib.request.urlopen(flag_url)
+    flag_raw_data = flag_response.read().decode("utf-8")
+    s_date_flag = r"<td class=\"[a-z_A-Z]*\">(\d{4}-\d{1,2}-\d{1,2})</td>"
+    flag_pat_date = re.compile(s_date_flag)
+    flag_date = str(flag_pat_date.findall(flag_raw_data)[0])
+    print(flag_date)
+    flag_file = "SUCCESS." + str(flag_date)
+    print(flag_file)
+    if not os.path.exists(foutpath + "/" + flag_file):
+        isGetAllHistoryMoneyAgain = "true"
+        # 获取股票的id和输入天数的股票数据
+        get_stock_idinfo = GetStockInfo(1, 1)
+        maxdays = get_stock_idinfo.GetStockInfos()
+
+    else:
+        isGetAllHistoryMoneyAgain = "false"
+        # os.remove(foutpath + '/' + flag_file)
     codes = cur.fetchall()
     code_list = []
     cal_code_list = []
     #存放预测出来的股票代码
     f_result = foutpath + '/stock_increase'
-    '''
     if os.path.exists(f_result):
         os.remove(f_result)
     os.system('touch ' + f_result)
-    '''
-    print(codes)
-    print(len(codes))
     #codes = ['002031']
     if isGetAllHistoryMoneyAgain == "true":
         if not os.path.exists(foutpath):
@@ -634,38 +947,82 @@ if __name__ == "__main__":
         print(code_list)
         objs1 = ModelStockNetShare(code_list, analysis_days, isGetHistoryMoneyFromNewSource)
         objs1.GetHistoryData()
+        sql_date = "select valid_date from sh_stock_info where code = \"601390\" order by valid_date desc limit 1;"
+        cur.execute(sql_date)
+        db.commit()
+        tmp_date = cur.fetchall()
+        #datas = "2019-05-14"
+        databases = "sh_stock_info"
+        datas = ""
+        for dd in tmp_date:
+            datas = dd[0]
+        # 获取板块信息并写入json和数据库
+        print(datas, maxdays)
+        obj = GetStockPlateInfo(code_list, divs, datas, maxdays)
+        obj.GetStockPlate()
+
+        if os.path.exists(flag_path):
+            fin = open(flag_path, 'r')
+            tmp_json = json.load(fin)
+            flag_date_dict = "fail"
+            for i in tmp_json.keys():
+                flag_date_dict = str(i)
+                break
+            if str(flag_date) == str(flag_date_dict):
+                flag_file = "SUCCESS." + str(flag_date_dict)
+                os.system("touch " + foutpath + "/" + flag_file)
+            else:
+                print("获取数据失败，601390从网上获取的最新数据时间同词表中获取的最新数据时间不一致!!")
+                exit(-1)
 
     if isCaculateHistoryNetShare == "true":
         for item in codes:
             code = item[0]
             #code = item
             cal_code_list.append(code)
-        #objs2 = ModelStockNetShare(cal_code_list)
-        #objs2.CalculateHistoryData()
+        sql_date = "select valid_date from sh_stock_info where code = \"601390\" order by valid_date desc limit 1;"
+        cur.execute(sql_date)
+        db.commit()
+        tmp_date = cur.fetchall()
+        #datas = "2019-05-14"
+        databases = "sh_stock_info"
+        datas = ""
+        for dd in tmp_date:
+            datas = dd[0]
+        objs2 = ModelStockNetShare(cal_code_list)
+        objs2.CalculateHistoryData()
+        plate_info = ""
+        weight_thread = 0.86
+        obj_result = GetResultInfo(f_result, datas, max_price, plate_info, divs, weight_thread)
+        obj_result.get_result()
+        '''
         f_final = open(f_result, 'r')
         ff = f_final.readlines()
         #datas = time.strftime('%Y-%m-%d', time.localtime(time.time()))
-        datas = "2019-05-10"
+        #datas = "2019-05-14"
         tmp = []
         for i in ff:
-            i = i.strip('\n')
+            aa = i.strip('\n').split(',')
+            i = aa[0]
+            weight = aa[1]
             if i[0] == "6":
                 databases = "sh_stock_info"
-            elif i[0] == "3":
-                databases = "sz_stock_info"
             elif i[0] == "0":
+                databases = "sz_stock_info"
+            elif i[0] == "3":
                 databases = "cyb_stock_info"
-            sqls = "select end_price from " + databases + " where code=" + str(i) + " and date_format(valid_date, '%Y-%m-%d')=" + "\'" + datas + "\'" + ";"
+            sqls = "select end_price from " + databases + " where code=" + str(i) + " and date_format(valid_date, '%Y-%m-%d')=" + "\'" + str(datas) + "\'" + ";"
             #print(sqls)
             cur.execute(sqls)
             db.commit()
             select_price = cur.fetchall()
             if len(select_price) != 0:
                 s_price = select_price[0]
-                if float(s_price[0]) < 5.0:
-                    print("最后一天价格为:%s, 小于10元，且第二天可能上涨的股票代码: %s" % (s_price, i))
-
-
+                if float(s_price[0]) < float(max_price):
+                    print("最后一天价格为:%s, 小于%s元，且第二天可能上涨的股票代码: %s, 股票上涨权重: %s" % (s_price, max_price, i, weight))
+        '''
+        d2 = time.time()
+        print("总共耗费的时间: %s" % (d2-d1))
 
 
 
@@ -679,4 +1036,6 @@ def Find_min_2(a):
  
 a=[4,1,3,5]
 print(Find_min_2(a))
+
+map filter reduce
 '''

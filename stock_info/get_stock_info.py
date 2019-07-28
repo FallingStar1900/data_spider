@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
 import sys
+import time
 import urllib.request
 import re
 import datetime
@@ -121,10 +122,19 @@ class GetAllStockInfo:
         elif now_month >9 and now_month <13:
             season = 4
         #print(season)
+        retry = 5
+        i = 0
         while True:
             skip = "false"
             url = "http://quotes.money.163.com/trade/lsjysj_" + code + ".html?year=" + str(now_year) + "&season=" + str(season)
-            response = urllib.request.urlopen(url)
+            while i < retry:
+                try:
+                    response = urllib.request.urlopen(url)
+                    break
+                except Exception:
+                    i = i + 1
+                    time.sleep(5)
+
             raw_data = response.read().decode("utf-8")
             s_date = r"<tr class='[a-zA-Z]*'><td>(\d{4}-\d{1,2}-\d{1,2})</td>"
             s_number = r"<td[\s]*[a-z=]*\'*[a-zA-Z]*\'*>(\d*,*\d*,*\d*,*-*\d*\.*\d*)</td>"
