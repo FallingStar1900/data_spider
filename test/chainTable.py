@@ -338,6 +338,30 @@ class ChainData:
             i = i + 1
         return pHead
 
+    def FindKthToTail(self, head, k):
+        # write code here
+        if head is None and k >0 or k < 0:
+            return None
+        if head is None or k == 0:
+            return None
+        num = 1
+        i = 0
+        p1 = head
+        p2 = head
+        while p1.next:
+            num = num + 1
+            p1 = p1.next
+        if num < k:
+            return None
+        while i < k-1:
+            p2 = p2.next
+            i = i + 1
+        p1 = head
+        while p2.next:
+            p1 = p1.next
+            p2 = p2.next
+        return p1
+
 
 if __name__ == "__main__":
     chainTable = ChainData()
